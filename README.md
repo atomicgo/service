@@ -278,7 +278,7 @@ The health-go library provides several built-in health checkers for common servi
 ```go
 import (
     "github.com/hellofresh/health-go/v5"
-    healthMysql "github.com/hellofresh/health-go/v5/checks/postgres"
+    healthPostgres "github.com/hellofresh/health-go/v5/checks/postgres"
     healthRedis "github.com/hellofresh/health-go/v5/checks/redis"
 )
 
