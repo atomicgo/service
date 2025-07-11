@@ -61,20 +61,36 @@
 
 ---
 
-A lightweight, production-ready HTTP service framework for Go applications designed to be Kubernetes-ready and follow best practices for highly available microservices.
+A minimal boilerplate wrapper for building production-ready Go HTTP services. This library reduces the boilerplate of writing production/enterprise-grade Go services to a minimum.
+
+**What this library provides:**
+- Essential production features out of the box (metrics, health checks, graceful shutdown)
+- Kubernetes and containerization boilerplate
+- Lightweight wrapper around http.Server for high availability services
+
+**What this library does NOT provide:**
+- HTTP framework or routing
+- Business logic or application patterns
+- Restrictions on how you write your HTTP handlers
+- Opinionated application architecture
+
+Write HTTP handlers exactly as you prefer, using any patterns or frameworks you choose. This library handles the operational concerns while staying out of your application logic.
 
 ## Features
 
-- **HTTP Server**: Configurable HTTP server with timeouts and graceful shutdown
+- **Minimal Boilerplate**: Reduces production service setup to a few lines of code
+- **HTTP Server Wrapper**: Lightweight wrapper around http.Server with production defaults
 - **Metrics**: Built-in Prometheus metrics collection with automatic request tracking
 - **Logging**: Structured logging with slog integration and context-aware loggers
 - **Middleware**: Extensible middleware system with built-in recovery and logging
 - **Configuration**: Environment-based configuration with sensible defaults
 - **Graceful Shutdown**: Signal handling with configurable shutdown hooks
-- **Health Checks**: Built-in health check endpoints
-- **Kubernetes Ready**: Designed for containerized deployments
+- **Health Checks**: Built-in health check endpoints for Kubernetes
+- **Framework Agnostic**: Works with any HTTP patterns or frameworks you prefer (as long as the framework supports the standard `http` package)
 
 ## Quick Start
+
+Minimal boilerplate to get a production-ready service with metrics, health checks, and graceful shutdown:
 
 ```go
 package main
@@ -91,19 +107,26 @@ func main() {
     // Create service with default configuration
     svc := service.New("my-service", nil)
 
-    // Register handlers
+    // Write HTTP handlers exactly as you prefer
     svc.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        logger := service.GetLogger(r)
+        logger := service.GetLogger(r) // Easy access to the logger
         logger.Info("Hello, World!")
         w.Write([]byte("Hello, World!"))
     })
 
-    // Start service (includes graceful shutdown)
+    // Start service (includes graceful shutdown, metrics, health checks)
     if err := svc.Start(); err != nil {
         os.Exit(1)
     }
 }
 ```
+
+That's it! Your service now has:
+- Prometheus metrics at `:9090/metrics`
+- Health checks at `:9090/health`
+- Graceful shutdown handling
+- Structured logging
+- Kubernetes-ready configuration
 
 ## Configuration
 
@@ -204,12 +227,13 @@ Health check endpoints are automatically available:
 
 ## Kubernetes Deployment
 
-The framework is designed for Kubernetes deployments with:
+The library provides all the boilerplate needed for Kubernetes deployments:
 
 - Graceful shutdown handling SIGTERM
 - Health check endpoints for liveness/readiness probes
 - Prometheus metrics for monitoring
 - Configurable resource limits via environment variables
+- No additional Kubernetes-specific code required
 
 ## Examples
 
@@ -236,35 +260,13 @@ curl http://localhost:8080/metrics-demo
 curl http://localhost:9090/metrics
 ```
 
-## Testing
-
-The framework includes comprehensive tests and benchmarks:
-
-```bash
-# Run all tests
-go test -v ./...
-
-# Run benchmarks
-go test -bench=. ./...
-
-# Run with coverage
-go test -cover ./...
-```
-
 ## Best Practices
 
-1. **Graceful shutdown is enabled by default** - no additional configuration needed
-2. **Configure appropriate timeouts** based on your application needs
-3. **Add custom shutdown hooks** for resource cleanup
+1. **Minimal setup** - Start with default configuration and customize only what you need
+2. **Write HTTP handlers naturally** - Use any patterns or frameworks you prefer
+3. **Add custom shutdown hooks** for resource cleanup when needed
 4. **Use structured logging** for better observability
 5. **Monitor metrics** in production environments
-6. **Set up health checks** for Kubernetes deployments
-
-## Dependencies
-
-- `github.com/caarlos0/env/v11`: Environment variable parsing
-- `github.com/prometheus/client_golang`: Prometheus metrics
-- `log/slog`: Structured logging (Go 1.21+)
 
 ## Contributing
 
