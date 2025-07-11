@@ -148,11 +148,31 @@ func (s *Service) startMetricsServer() error {
 	mux := http.NewServeMux()
 	mux.Handle(s.Config.MetricsPath, promhttp.Handler())
 
-	// Add health check endpoint
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
+	// Add health check endpoints
+	if s.HealthChecker != nil {
+		// Main health check endpoint (comprehensive health status)
+		mux.Handle(s.Config.HealthPath, s.HealthChecker.Handler())
+
+		// Kubernetes readiness probe endpoint
+		mux.HandleFunc(s.Config.ReadinessPath, s.HealthChecker.ReadinessHandler())
+
+		// Kubernetes liveness probe endpoint
+		mux.HandleFunc(s.Config.LivenessPath, s.HealthChecker.LivenessHandler())
+	} else {
+		// Fallback basic health endpoints if health checker is not available
+		mux.HandleFunc(s.Config.HealthPath, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+		mux.HandleFunc(s.Config.ReadinessPath, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Ready"))
+		})
+		mux.HandleFunc(s.Config.LivenessPath, func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Alive"))
+		})
+	}
 
 	s.metricsServer = &http.Server{
 		Addr:    s.Config.MetricsAddr,

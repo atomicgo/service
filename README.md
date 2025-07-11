@@ -123,7 +123,9 @@ func main() {
 
 That's it! Your service now has:
 - Prometheus metrics at `:9090/metrics`
-- Health checks at `:9090/health`
+- Comprehensive health checks at `:9090/health`
+- Kubernetes readiness probe at `:9090/ready`
+- Kubernetes liveness probe at `:9090/live`
 - Graceful shutdown handling
 - Structured logging
 - Kubernetes-ready configuration
@@ -137,6 +139,10 @@ The framework supports configuration via environment variables with sensible def
 | `ADDR` | `:8080` | HTTP server address |
 | `METRICS_ADDR` | `:9090` | Metrics server address |
 | `METRICS_PATH` | `/metrics` | Metrics endpoint path |
+| `HEALTH_PATH` | `/health` | Health check endpoint path |
+| `READINESS_PATH` | `/ready` | Readiness probe endpoint path |
+| `LIVENESS_PATH` | `/live` | Liveness probe endpoint path |
+| `SERVICE_VERSION` | `v1.0.0` | Service version for health checks |
 | `READ_TIMEOUT` | `10s` | HTTP read timeout |
 | `WRITE_TIMEOUT` | `10s` | HTTP write timeout |
 | `IDLE_TIMEOUT` | `120s` | HTTP idle timeout |
@@ -220,10 +226,113 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Health Checks
 
-Health check endpoints are automatically available:
+The framework integrates with [HelloFresh's health-go library](https://github.com/hellofresh/health-go) to provide comprehensive health checking capabilities.
 
-- `:9090/health`: Basic health check
+### Built-in Health Endpoints
+
+Health check endpoints are automatically available on the metrics server:
+
+- `:9090/health`: Comprehensive health check with detailed status information
+- `:9090/ready`: Kubernetes readiness probe endpoint
+- `:9090/live`: Kubernetes liveness probe endpoint
 - `:9090/metrics`: Prometheus metrics
+
+### Adding Custom Health Checks
+
+You can register custom health checks using the `RegisterHealthCheck` method:
+
+```go
+func main() {
+    svc := service.New("my-service", nil)
+
+    // Register a database health check
+    svc.RegisterHealthCheck(health.Config{
+        Name:      "database",
+        Timeout:   time.Second * 5,
+        SkipOnErr: false, // This check is critical
+        Check: func(ctx context.Context) error {
+            // Your database health check logic here
+            return db.PingContext(ctx)
+        },
+    })
+
+    // Register a Redis health check
+    svc.RegisterHealthCheck(health.Config{
+        Name:      "redis",
+        Timeout:   time.Second * 3,
+        SkipOnErr: true, // This check is optional
+        Check: func(ctx context.Context) error {
+            // Your Redis health check logic here
+            return redisClient.Ping(ctx).Err()
+        },
+    })
+
+    svc.Start()
+}
+```
+
+### Using Built-in Health Checkers
+
+The health-go library provides several built-in health checkers for common services:
+
+```go
+import (
+    "github.com/hellofresh/health-go/v5"
+    healthMysql "github.com/hellofresh/health-go/v5/checks/mysql"
+    healthRedis "github.com/hellofresh/health-go/v5/checks/redis"
+)
+
+func main() {
+    svc := service.New("my-service", nil)
+
+    // MySQL health check
+    svc.RegisterHealthCheck(health.Config{
+        Name:    "mysql",
+        Timeout: time.Second * 5,
+        Check: healthMysql.New(healthMysql.Config{
+            DSN: "user:password@tcp(localhost:3306)/dbname",
+        }),
+    })
+
+    // Redis health check
+    svc.RegisterHealthCheck(health.Config{
+        Name:    "redis",
+        Timeout: time.Second * 3,
+        Check: healthRedis.New(healthRedis.Config{
+            Addr: "localhost:6379",
+        }),
+    })
+
+    svc.Start()
+}
+```
+
+### Health Check Configuration
+
+You can configure health check endpoints using environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HEALTH_PATH` | `/health` | Main health check endpoint path |
+| `READINESS_PATH` | `/ready` | Kubernetes readiness probe path |
+| `LIVENESS_PATH` | `/live` | Kubernetes liveness probe path |
+
+### Accessing Health Checker in Handlers
+
+You can access the health checker in your HTTP handlers:
+
+```go
+func myHandler(w http.ResponseWriter, r *http.Request) {
+    healthChecker := service.GetHealthChecker(r)
+    if healthChecker != nil {
+        status, err := healthChecker.Measure(r.Context())
+        if err != nil {
+            // Handle error
+        }
+        // Use status information
+    }
+}
+```
 
 ## Kubernetes Deployment
 
@@ -255,9 +364,11 @@ go run main.go
 Test the endpoints:
 ```bash
 curl http://localhost:8080/
-curl http://localhost:8080/health
 curl http://localhost:8080/metrics-demo
-curl http://localhost:9090/metrics
+curl http://localhost:9090/health    # Comprehensive health check
+curl http://localhost:9090/ready     # Readiness probe
+curl http://localhost:9090/live      # Liveness probe
+curl http://localhost:9090/metrics   # Prometheus metrics
 ```
 
 ## Best Practices

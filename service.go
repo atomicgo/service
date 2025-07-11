@@ -6,14 +6,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/hellofresh/health-go/v5"
 )
 
 // Service represents the main service instance
 type Service struct {
-	Name    string
-	Config  *Config
-	Logger  *slog.Logger
-	Metrics *MetricsCollector
+	Name          string
+	Config        *Config
+	Logger        *slog.Logger
+	Metrics       *MetricsCollector
+	HealthChecker *HealthChecker
 
 	server        *http.Server
 	metricsServer *http.Server
@@ -30,12 +33,21 @@ func New(name string, config *Config) *Service {
 	// Create metrics collector
 	metrics := NewMetricsCollector(name)
 
+	// Create health checker
+	healthChecker, err := NewHealthChecker(name, config.Version)
+	if err != nil {
+		config.Logger.Error("failed to create health checker", "error", err)
+		// Continue without health checker - it's not critical for basic operation
+		healthChecker = nil
+	}
+
 	svc := &Service{
-		Name:    name,
-		Config:  config,
-		Logger:  config.Logger,
-		Metrics: metrics,
-		mux:     http.NewServeMux(),
+		Name:          name,
+		Config:        config,
+		Logger:        config.Logger,
+		Metrics:       metrics,
+		HealthChecker: healthChecker,
+		mux:           http.NewServeMux(),
 	}
 
 	// Add default middleware (order matters: metrics should be first to capture all requests)
@@ -44,6 +56,11 @@ func New(name string, config *Config) *Service {
 		LoggerMiddleware(config.Logger),
 		RecoveryMiddleware(config.Logger),
 		RequestLoggingMiddleware(config.Logger),
+	}
+
+	// Add health checker middleware if available
+	if healthChecker != nil {
+		svc.middlewares = append(svc.middlewares, HealthCheckerMiddleware(healthChecker))
 	}
 
 	return svc
@@ -113,4 +130,18 @@ func (s *Service) Start() error {
 
 	// Perform graceful shutdown
 	return s.gracefulShutdown()
+}
+
+// RegisterHealthCheck adds a health check to the service
+func (s *Service) RegisterHealthCheck(config health.Config) {
+	if s.HealthChecker != nil {
+		s.HealthChecker.Register(config)
+	} else {
+		s.Logger.Warn("health checker not available, skipping health check registration", "name", config.Name)
+	}
+}
+
+// GetHealthChecker returns the health checker instance
+func (s *Service) GetHealthChecker() *HealthChecker {
+	return s.HealthChecker
 }

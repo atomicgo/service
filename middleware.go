@@ -14,6 +14,8 @@ const (
 	LoggerKey ContextKey = "logger"
 	// MetricsKey is the context key for metrics
 	MetricsKey ContextKey = "metrics"
+	// HealthCheckerKey is the context key for the health checker
+	HealthCheckerKey ContextKey = "health_checker"
 )
 
 // Middleware represents a middleware function
@@ -71,6 +73,20 @@ func RequestLoggingMiddleware(logger *slog.Logger) Middleware {
 				"remote_addr", r.RemoteAddr,
 				"user_agent", r.UserAgent())
 
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// HealthCheckerMiddleware injects the health checker into the request context
+func HealthCheckerMiddleware(healthChecker *HealthChecker) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Add health checker to context
+			ctx := context.WithValue(r.Context(), HealthCheckerKey, healthChecker)
+			r = r.WithContext(ctx)
+
+			// Call the next handler
 			next.ServeHTTP(w, r)
 		})
 	}

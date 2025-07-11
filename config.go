@@ -23,6 +23,14 @@ type Config struct {
 	// Graceful shutdown configuration
 	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"30s"`
 
+	// Service information
+	Version string `env:"SERVICE_VERSION" envDefault:"v1.0.0"`
+
+	// Health check configuration
+	HealthPath    string `env:"HEALTH_PATH" envDefault:"/health"`
+	ReadinessPath string `env:"READINESS_PATH" envDefault:"/ready"`
+	LivenessPath  string `env:"LIVENESS_PATH" envDefault:"/live"`
+
 	// Logger configuration
 	Logger *slog.Logger `env:"-"`
 
@@ -40,6 +48,10 @@ func DefaultConfig() *Config {
 		MetricsAddr:     ":9090",
 		MetricsPath:     "/metrics",
 		ShutdownTimeout: 30 * time.Second,
+		Version:         "v1.0.0",
+		HealthPath:      "/health",
+		ReadinessPath:   "/ready",
+		LivenessPath:    "/live",
 		Logger:          slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})),
 		ShutdownHooks:   make([]func() error, 0),
 	}
