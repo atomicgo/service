@@ -16,6 +16,7 @@ func main() {
 	// Load configuration from environment variables
 	config, err := service.LoadFromEnv()
 	if err != nil {
+		// We can't use svc.Logger here yet, so we'll use slog for this error
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
@@ -68,7 +69,7 @@ func main() {
 
 			// Create a simple HTTP request to check external service
 			client := &http.Client{Timeout: 5 * time.Second}
-			req, err := http.NewRequestWithContext(ctx, "GET", "https://httpbin.org/status/200", nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", "https://httb.dev/status/200", nil)
 			if err != nil {
 				return err
 			}
@@ -101,19 +102,19 @@ func main() {
 	svc.HandleFunc("/metrics-demo", handleMetricsDemo)
 
 	// Start service with graceful shutdown
-	slog.Info("starting service with graceful shutdown support")
-	slog.Info("health endpoints available at:")
-	slog.Info("  - http://localhost:9090/health (comprehensive health check)")
-	slog.Info("  - http://localhost:9090/ready (readiness probe)")
-	slog.Info("  - http://localhost:9090/live (liveness probe)")
-	slog.Info("  - http://localhost:9090/metrics (prometheus metrics)")
+	svc.Logger.Info("starting service with graceful shutdown support")
+	svc.Logger.Info("health endpoints available at:")
+	svc.Logger.Info("  - http://localhost:9090/health (comprehensive health check)")
+	svc.Logger.Info("  - http://localhost:9090/ready (readiness probe)")
+	svc.Logger.Info("  - http://localhost:9090/live (liveness probe)")
+	svc.Logger.Info("  - http://localhost:9090/metrics (prometheus metrics)")
 
 	if err := svc.Start(); err != nil {
 		svc.Logger.Error("failed to start service", "error", err)
 		os.Exit(1)
 	}
 
-	slog.Info("service stopped")
+	svc.Logger.Info("service stopped")
 }
 
 func handleHelloWorld(w http.ResponseWriter, r *http.Request) {
