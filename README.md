@@ -98,8 +98,8 @@ func main() {
         w.Write([]byte("Hello, World!"))
     })
 
-    // Start with graceful shutdown
-    if err := svc.StartWithGracefulShutdown(); err != nil {
+    // Start service (includes graceful shutdown)
+    if err := svc.Start(); err != nil {
         os.Exit(1)
     }
 }
@@ -171,7 +171,7 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 ## Graceful Shutdown
 
-The framework supports graceful shutdown with signal handling and custom hooks:
+The framework includes graceful shutdown by default with signal handling and custom hooks:
 
 ```go
 // Add shutdown hooks
@@ -180,8 +180,8 @@ svc.AddShutdownHook(func() error {
     return nil
 })
 
-// Start with graceful shutdown
-svc.StartWithGracefulShutdown()
+// Start service (includes graceful shutdown)
+svc.Start()
 ```
 
 ## Logging
@@ -253,7 +253,7 @@ go test -cover ./...
 
 ## Best Practices
 
-1. **Always use graceful shutdown** for production deployments
+1. **Graceful shutdown is enabled by default** - no additional configuration needed
 2. **Configure appropriate timeouts** based on your application needs
 3. **Add custom shutdown hooks** for resource cleanup
 4. **Use structured logging** for better observability

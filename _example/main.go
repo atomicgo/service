@@ -44,7 +44,7 @@ func main() {
 
 	// Start service with graceful shutdown
 	slog.Info("starting service with graceful shutdown support")
-	if err := svc.StartWithGracefulShutdown(); err != nil {
+	if err := svc.Start(); err != nil {
 		svc.Logger.Error("failed to start service", "error", err)
 		os.Exit(1)
 	}

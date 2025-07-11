@@ -3,6 +3,9 @@ package service
 import (
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 // Service represents the main service instance
@@ -65,24 +68,49 @@ func (s *Service) Use(middleware Middleware) {
 	s.middlewares = append(s.middlewares, middleware)
 }
 
-// Start starts the service and metrics server
+// Start starts the service with graceful shutdown handling
 func (s *Service) Start() error {
-	// Start metrics server in a goroutine
+	// Create a channel to receive OS signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Start the servers in goroutines
+	serverErrors := make(chan error, 2)
+
+	// Start metrics server
 	go func() {
 		if err := s.startMetricsServer(); err != nil && err != http.ErrServerClosed {
 			s.Logger.Error("metrics server error", "error", err)
+			serverErrors <- err
 		}
 	}()
 
 	// Start main HTTP server
-	s.server = &http.Server{
-		Addr:         s.Config.Addr,
-		Handler:      s.mux,
-		ReadTimeout:  s.Config.ReadTimeout,
-		WriteTimeout: s.Config.WriteTimeout,
-		IdleTimeout:  s.Config.IdleTimeout,
+	go func() {
+		s.server = &http.Server{
+			Addr:         s.Config.Addr,
+			Handler:      s.mux,
+			ReadTimeout:  s.Config.ReadTimeout,
+			WriteTimeout: s.Config.WriteTimeout,
+			IdleTimeout:  s.Config.IdleTimeout,
+		}
+
+		s.Logger.Info("starting service", "name", s.Name, "addr", s.Config.Addr)
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.Logger.Error("server error", "error", err)
+			serverErrors <- err
+		}
+	}()
+
+	// Wait for either a signal or a server error
+	select {
+	case <-quit:
+		s.Logger.Info("received shutdown signal")
+	case err := <-serverErrors:
+		s.Logger.Error("server error, shutting down", "error", err)
+		return err
 	}
 
-	s.Logger.Info("starting service", "name", s.Name, "addr", s.Config.Addr)
-	return s.server.ListenAndServe()
+	// Perform graceful shutdown
+	return s.gracefulShutdown()
 }
