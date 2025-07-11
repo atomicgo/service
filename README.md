@@ -326,11 +326,9 @@ You can access the health checker in your HTTP handlers:
 func myHandler(w http.ResponseWriter, r *http.Request) {
     healthChecker := service.GetHealthChecker(r)
     if healthChecker != nil {
-        status, err := healthChecker.Measure(r.Context())
-        if err != nil {
-            // Handle error
-        }
+        check := healthChecker.Measure(r.Context())
         // Use status information
+        w.Write([]byte(fmt.Sprintf("Health checks: %+v", check)))
     }
 }
 ```
