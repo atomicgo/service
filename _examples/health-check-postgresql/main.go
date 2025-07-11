@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"net/http"
 	"os"
 	"time"
@@ -32,20 +31,11 @@ func main() {
 		}),
 	})
 
-	// Open database connection for stats endpoint
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		svc.Logger.Error("Failed to open database connection", "error", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-
 	// Simple handler
 	svc.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World!"))
 	})
 
-	svc.Logger.Info("Starting PostgreSQL health check service...")
 	svc.Logger.Info("Service available at http://localhost:8080")
 	svc.Logger.Info("Health check at http://localhost:9090/health")
 	svc.Logger.Info("Database URL: " + dbURL)
