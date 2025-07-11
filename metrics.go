@@ -19,7 +19,7 @@ type MetricsCollector struct {
 
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector(serviceName string) *MetricsCollector {
-	mc := &MetricsCollector{
+	metricsCollector := &MetricsCollector{
 		httpRequestsTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: serviceName + "_http_requests_total",
@@ -44,16 +44,17 @@ func NewMetricsCollector(serviceName string) *MetricsCollector {
 	}
 
 	// Register metrics with Prometheus (ignore if already registered)
-	prometheus.DefaultRegisterer.Register(mc.httpRequestsTotal)
-	prometheus.DefaultRegisterer.Register(mc.httpRequestDuration)
-	prometheus.DefaultRegisterer.Register(mc.httpRequestsInFlight)
+	_ = prometheus.DefaultRegisterer.Register(metricsCollector.httpRequestsTotal)
+	_ = prometheus.DefaultRegisterer.Register(metricsCollector.httpRequestDuration)
+	_ = prometheus.DefaultRegisterer.Register(metricsCollector.httpRequestsInFlight)
 
-	return mc
+	return metricsCollector
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
+
 	statusCode int
 }
 
@@ -161,26 +162,29 @@ func (s *Service) startMetricsServer() error {
 		mux.HandleFunc(s.Config.LivenessPath, s.HealthChecker.LivenessHandler())
 	} else {
 		// Fallback basic health endpoints if health checker is not available
-		mux.HandleFunc(s.Config.HealthPath, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc(s.Config.HealthPath, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("OK"))
+			_, _ = w.Write([]byte("OK"))
 		})
-		mux.HandleFunc(s.Config.ReadinessPath, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc(s.Config.ReadinessPath, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ready"))
+			_, _ = w.Write([]byte("Ready"))
 		})
-		mux.HandleFunc(s.Config.LivenessPath, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc(s.Config.LivenessPath, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Alive"))
+			_, _ = w.Write([]byte("Alive"))
 		})
 	}
 
 	s.metricsServer = &http.Server{
-		Addr:    s.Config.MetricsAddr,
-		Handler: mux,
+		Addr:         s.Config.MetricsAddr,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Minute,
+		WriteTimeout: 5 * time.Minute,
+		IdleTimeout:  5 * time.Minute,
 	}
 
 	s.Logger.Info("starting metrics server", "addr", s.Config.MetricsAddr, "path", s.Config.MetricsPath)
 
-	return s.metricsServer.ListenAndServe()
+	return s.metricsServer.ListenAndServe() //nolint:wrapcheck
 }

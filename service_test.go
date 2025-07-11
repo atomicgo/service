@@ -3,14 +3,17 @@ package service
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
 func TestNew(t *testing.T) {
+	t.Parallel()
+
 	t.Run("with config", func(t *testing.T) {
+		t.Parallel()
+
 		config := DefaultConfig()
 		config.Addr = ":8081"
 
@@ -34,6 +37,8 @@ func TestNew(t *testing.T) {
 	})
 
 	t.Run("with nil config", func(t *testing.T) {
+		t.Parallel()
+
 		svc := New("test", nil)
 
 		if svc.Config == nil {
@@ -47,6 +52,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
+	t.Parallel()
+
 	config := DefaultConfig()
 
 	if config.Addr != ":8080" {
@@ -71,16 +78,12 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadFromEnv(t *testing.T) {
-	// Set environment variables
-	os.Setenv("ADDR", ":8888")
-	os.Setenv("METRICS_ADDR", ":9999")
-	os.Setenv("METRICS_PATH", "/custom-metrics")
+	t.Parallel()
 
-	defer func() {
-		os.Unsetenv("ADDR")
-		os.Unsetenv("METRICS_ADDR")
-		os.Unsetenv("METRICS_PATH")
-	}()
+	// Set environment variables
+	t.Setenv("ADDR", ":8888")
+	t.Setenv("METRICS_ADDR", ":9999")
+	t.Setenv("METRICS_PATH", "/custom-metrics")
 
 	config, err := LoadFromEnv()
 	if err != nil {
@@ -101,16 +104,18 @@ func TestLoadFromEnv(t *testing.T) {
 }
 
 func TestHandleFunc(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Add a simple handler
-	svc.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+	svc.HandleFunc("/test", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("test response"))
 	})
 
 	// Create a test request
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	// Serve the request
@@ -126,6 +131,8 @@ func TestHandleFunc(t *testing.T) {
 }
 
 func TestGetLogger(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Test with a request that has logger middleware applied
@@ -138,7 +145,7 @@ func TestGetLogger(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}), LoggerMiddleware(svc.Logger))
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, req)
@@ -149,6 +156,8 @@ func TestGetLogger(t *testing.T) {
 }
 
 func TestGetMetrics(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Test with a request that has metrics middleware applied
@@ -161,7 +170,7 @@ func TestGetMetrics(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}), MetricsMiddleware(svc.Metrics))
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, req)
@@ -172,14 +181,16 @@ func TestGetMetrics(t *testing.T) {
 }
 
 func TestRecoveryMiddleware(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Create a handler that panics
-	handler := applyMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := applyMiddleware(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
 		panic("test panic")
 	}), RecoveryMiddleware(svc.Logger))
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, req)
@@ -194,6 +205,8 @@ func TestRecoveryMiddleware(t *testing.T) {
 }
 
 func TestMetricsMiddleware(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Create a simple handler
@@ -202,7 +215,7 @@ func TestMetricsMiddleware(t *testing.T) {
 		w.Write([]byte("test"))
 	}), MetricsMiddleware(svc.Metrics))
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	handler.ServeHTTP(recorder, req)
@@ -210,11 +223,11 @@ func TestMetricsMiddleware(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", recorder.Code)
 	}
-	// Note: In a real test, you'd check if the metrics were actually recorded
-	// This would require exposing the metrics or using a metrics registry
 }
 
 func TestShutdownHooks(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	hookCalled := false
@@ -225,8 +238,8 @@ func TestShutdownHooks(t *testing.T) {
 	})
 
 	// Create a minimal server setup
-	svc.server = &http.Server{Addr: ":0"}
-	svc.metricsServer = &http.Server{Addr: ":0"}
+	svc.server = &http.Server{Addr: ":0"}        //nolint:gosec
+	svc.metricsServer = &http.Server{Addr: ":0"} //nolint:gosec
 
 	// Test graceful shutdown
 	err := svc.gracefulShutdown()
@@ -240,6 +253,8 @@ func TestShutdownHooks(t *testing.T) {
 }
 
 func TestUse(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	initialCount := len(svc.middlewares)
@@ -257,11 +272,11 @@ func TestUse(t *testing.T) {
 	}
 
 	// Test that the custom middleware is applied
-	svc.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+	svc.HandleFunc("/test", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	req := httptest.NewRequest("GET", "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	recorder := httptest.NewRecorder()
 
 	svc.mux.ServeHTTP(recorder, req)
@@ -272,6 +287,8 @@ func TestUse(t *testing.T) {
 }
 
 func TestIntegration(t *testing.T) {
+	t.Parallel()
+
 	// Create a service with custom configuration
 	config := DefaultConfig()
 	config.Addr = ":0" // Use random port
@@ -289,7 +306,7 @@ func TestIntegration(t *testing.T) {
 	})
 
 	// Test the handler
-	req := httptest.NewRequest("GET", "/hello", nil)
+	req := httptest.NewRequest(http.MethodGet, "/hello", nil)
 	recorder := httptest.NewRecorder()
 
 	svc.mux.ServeHTTP(recorder, req)
@@ -306,6 +323,8 @@ func TestIntegration(t *testing.T) {
 }
 
 func TestStartMetricsServer(t *testing.T) {
+	t.Parallel()
+
 	svc := New("test", nil)
 
 	// Test that metrics server can be started (we'll use a mock)
@@ -332,11 +351,11 @@ func BenchmarkHandleFunc(b *testing.B) {
 
 	svc.HandleFunc("/benchmark", handler)
 
-	req := httptest.NewRequest("GET", "/benchmark", nil)
+	req := httptest.NewRequest(http.MethodGet, "/benchmark", nil)
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		recorder := httptest.NewRecorder()
 		svc.mux.ServeHTTP(recorder, req)
 	}
@@ -352,11 +371,11 @@ func BenchmarkMiddleware(b *testing.B) {
 
 	wrappedHandler := applyMiddleware(handler, svc.middlewares...)
 
-	req := httptest.NewRequest("GET", "/benchmark", nil)
+	req := httptest.NewRequest(http.MethodGet, "/benchmark", nil)
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		recorder := httptest.NewRecorder()
 		wrappedHandler.ServeHTTP(recorder, req)
 	}

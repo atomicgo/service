@@ -30,6 +30,7 @@ linters:
     - testpackage
     - unparam
     - zerologlint
+    - noinlineerr
   settings:
     exhaustive:
       default-signifies-exhaustive: true
@@ -79,6 +80,8 @@ linters:
         - t testing.T
         - b testing.B
         - sb strings.Builder
+        - w http.ResponseWriter
+        - r *http.Request
     wsl:
       force-case-trailing-whitespace: 3
       allow-cuddle-declarations: true
@@ -98,6 +101,9 @@ linters:
           - gochecknoglobals
           - noctx
         path: _test(_[^/]+)?\.go
+      - linters:
+          - revive
+        text: "unused-parameter:"
     paths:
       - third_party$
       - builtin$

@@ -18,7 +18,6 @@ func (s *Service) gracefulShutdown() error {
 
 		if err := hook(); err != nil {
 			s.Logger.Error("shutdown hook failed", "index", i, "error", err)
-			// Continue with other hooks even if one fails
 		}
 	}
 

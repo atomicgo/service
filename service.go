@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -96,8 +97,9 @@ func (s *Service) Start() error {
 
 	// Start metrics server
 	go func() {
-		if err := s.startMetricsServer(); err != nil && err != http.ErrServerClosed {
+		if err := s.startMetricsServer(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.Logger.Error("metrics server error", "error", err)
+
 			serverErrors <- err
 		}
 	}()
@@ -114,8 +116,9 @@ func (s *Service) Start() error {
 
 		s.Logger.Info("starting service", "name", s.Name, "addr", s.Config.Addr)
 
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			s.Logger.Error("server error", "error", err)
+
 			serverErrors <- err
 		}
 	}()
@@ -134,12 +137,14 @@ func (s *Service) Start() error {
 }
 
 // RegisterHealthCheck adds a health check to the service
-func (s *Service) RegisterHealthCheck(config health.Config) {
+func (s *Service) RegisterHealthCheck(config health.Config) error {
 	if s.HealthChecker != nil {
-		s.HealthChecker.Register(config)
-	} else {
-		s.Logger.Warn("health checker not available, skipping health check registration", "name", config.Name)
+		return s.HealthChecker.Register(config)
 	}
+
+	s.Logger.Warn("health checker not available, skipping health check registration", "name", config.Name)
+
+	return nil
 }
 
 // GetHealthChecker returns the health checker instance

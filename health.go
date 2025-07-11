@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -22,7 +23,7 @@ func NewHealthChecker(serviceName, version string) (*HealthChecker, error) {
 		}),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create health checker: %w", err)
 	}
 
 	return &HealthChecker{
@@ -31,8 +32,8 @@ func NewHealthChecker(serviceName, version string) (*HealthChecker, error) {
 }
 
 // Register adds a health check to the health checker
-func (hc *HealthChecker) Register(config health.Config) {
-	hc.checker.Register(config)
+func (hc *HealthChecker) Register(config health.Config) error {
+	return fmt.Errorf("failed to register health check: %w", hc.checker.Register(config))
 }
 
 // Handler returns the HTTP handler for health checks
@@ -81,10 +82,10 @@ func (hc *HealthChecker) ReadinessHandler() http.HandlerFunc {
 
 		if hc.IsReady(ctx) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Ready"))
+			_, _ = w.Write([]byte("Ready"))
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("Not Ready"))
+			_, _ = w.Write([]byte("Not Ready"))
 		}
 	}
 }
@@ -97,10 +98,10 @@ func (hc *HealthChecker) LivenessHandler() http.HandlerFunc {
 
 		if hc.IsAlive(ctx) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Alive"))
+			_, _ = w.Write([]byte("Alive"))
 		} else {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte("Not Alive"))
+			_, _ = w.Write([]byte("Not Alive"))
 		}
 	}
 }
