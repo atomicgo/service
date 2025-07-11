@@ -147,6 +147,26 @@ func (s *Service) RegisterHealthCheck(config health.Config) error {
 	return nil
 }
 
+// RegisterCounter registers a new counter metric
+func (s *Service) RegisterCounter(config MetricConfig) error {
+	return s.Metrics.RegisterCounter(config)
+}
+
+// RegisterGauge registers a new gauge metric
+func (s *Service) RegisterGauge(config MetricConfig) error {
+	return s.Metrics.RegisterGauge(config)
+}
+
+// RegisterHistogram registers a new histogram metric
+func (s *Service) RegisterHistogram(config MetricConfig) error {
+	return s.Metrics.RegisterHistogram(config)
+}
+
+// RegisterSummary registers a new summary metric
+func (s *Service) RegisterSummary(config MetricConfig) error {
+	return s.Metrics.RegisterSummary(config)
+}
+
 // GetHealthChecker returns the health checker instance
 func (s *Service) GetHealthChecker() *HealthChecker {
 	return s.HealthChecker

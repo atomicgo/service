@@ -78,8 +78,6 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadFromEnv(t *testing.T) {
-	t.Parallel()
-
 	// Set environment variables
 	t.Setenv("ADDR", ":8888")
 	t.Setenv("METRICS_ADDR", ":9999")

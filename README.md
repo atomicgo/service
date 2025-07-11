@@ -180,23 +180,123 @@ svc.Use(func(next http.Handler) http.Handler {
 
 ## Metrics
 
-The framework automatically collects Prometheus metrics:
+The framework provides a flexible metrics system with built-in HTTP metrics and support for custom metrics.
+
+### Built-in HTTP Metrics
+
+The framework automatically collects these Prometheus metrics:
 
 - `{service_name}_http_requests_total`: Total HTTP requests
 - `{service_name}_http_request_duration_seconds`: Request duration
 - `{service_name}_http_requests_in_flight`: In-flight requests
 
-Metrics are available at `:9090/metrics` by default.
+### Custom Metrics
+
+You can easily register and use custom metrics in your service:
 
 ```go
-// Access metrics in handlers
+func main() {
+    svc := service.New("my-service", nil)
+    
+    // Register custom metrics
+    svc.RegisterCounter(service.MetricConfig{
+        Name:   "user_registrations_total",
+        Help:   "Total number of user registrations",
+        Labels: []string{"source", "status"},
+    })
+    
+    svc.RegisterGauge(service.MetricConfig{
+        Name:   "active_users",
+        Help:   "Number of currently active users",
+        Labels: []string{"user_type"},
+    })
+    
+    svc.RegisterHistogram(service.MetricConfig{
+        Name:   "request_processing_duration_seconds",
+        Help:   "Time spent processing requests",
+        Labels: []string{"operation"},
+        Buckets: []float64{0.001, 0.01, 0.1, 1.0, 10.0},
+    })
+    
+    svc.RegisterSummary(service.MetricConfig{
+        Name:   "response_size_bytes",
+        Help:   "Size of responses in bytes",
+        Labels: []string{"endpoint"},
+        Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+    })
+    
+    // Use metrics in handlers
+    svc.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+        // Increment counter
+        service.IncCounter(r, "user_registrations_total", "web", "success")
+        
+        // Set gauge value
+        service.SetGauge(r, "active_users", 42.0, "premium")
+        
+        // Observe histogram
+        service.ObserveHistogram(r, "request_processing_duration_seconds", 0.25, "registration")
+        
+        // Observe summary
+        service.ObserveSummary(r, "response_size_bytes", 1024.0, "/register")
+        
+        w.Write([]byte("User registered"))
+    })
+    
+    svc.Start()
+}
+```
+
+### Metric Types
+
+The framework supports all standard Prometheus metric types:
+
+- **Counter**: Monotonically increasing values (e.g., total requests, errors)
+- **Gauge**: Values that can go up and down (e.g., active connections, memory usage)
+- **Histogram**: Observations in configurable buckets (e.g., request duration, response size)
+- **Summary**: Observations with configurable quantiles (e.g., request latency percentiles)
+
+### Helper Functions
+
+Use these helper functions in your HTTP handlers to manipulate metrics:
+
+```go
+// Counter operations
+service.IncCounter(r, "metric_name", "label1", "label2")           // Increment by 1
+service.AddCounter(r, "metric_name", 5.0, "label1", "label2")     // Add specific value
+
+// Gauge operations
+service.SetGauge(r, "metric_name", 42.0, "label1")               // Set to specific value
+service.IncGauge(r, "metric_name", "label1")                     // Increment by 1
+service.DecGauge(r, "metric_name", "label1")                     // Decrement by 1
+service.AddGauge(r, "metric_name", 5.0, "label1")               // Add specific value
+
+// Histogram operations
+service.ObserveHistogram(r, "metric_name", 0.25, "label1")       // Observe a value
+
+// Summary operations
+service.ObserveSummary(r, "metric_name", 1024.0, "label1")       // Observe a value
+```
+
+### Direct Access
+
+For advanced use cases, you can access the metrics collector directly:
+
+```go
 func myHandler(w http.ResponseWriter, r *http.Request) {
     metrics := service.GetMetrics(r)
     if metrics != nil {
-        // Custom metric operations can be added here
+        // Direct access to metrics collector
+        metrics.IncCounter("my_counter", "label_value")
+        metrics.SetGauge("my_gauge", 42.0, "label_value")
+        
+        // Access the underlying Prometheus registry
+        registry := metrics.GetRegistry()
+        // Use registry for custom integrations
     }
 }
 ```
+
+All metrics are available at `:9090/metrics` by default.
 
 ## Graceful Shutdown
 
@@ -345,29 +445,56 @@ The library provides all the boilerplate needed for Kubernetes deployments:
 
 ## Examples
 
-See the `_example/` directory for complete working examples demonstrating:
+See the `_examples/` directory for complete working examples demonstrating:
 
-- Basic service setup
-- Custom middleware
-- Environment configuration
-- Graceful shutdown
-- Metrics integration
+- **minimal/**: Basic service setup with default configuration
+- **custom-metrics/**: Comprehensive custom metrics registration and usage
+- **prometheus-counter/**: Advanced metrics patterns and business logic tracking
+- **health-check-***: Various health check integrations
+- **shutdown-hook/**: Graceful shutdown with custom cleanup
 
-### Running the Example
+### Running the Examples
 
 ```bash
-cd _example
+# Basic minimal service
+cd _examples/minimal
+go run main.go
+
+# Custom metrics demonstration
+cd _examples/custom-metrics
+go run main.go
+
+# Advanced Prometheus metrics
+cd _examples/prometheus-counter
 go run main.go
 ```
 
-Test the endpoints:
+### Testing Custom Metrics
+
+After running the custom metrics example:
+
 ```bash
-curl http://localhost:8080/
-curl http://localhost:8080/metrics-demo
+# Generate user registrations
+curl "http://localhost:8080/register?source=web"
+curl "http://localhost:8080/register?source=mobile"
+
+# Generate orders
+curl "http://localhost:8080/order?category=electronics&payment=credit_card"
+curl "http://localhost:8080/order?category=books&payment=paypal"
+
+# Admin metric operations
+curl -X POST "http://localhost:8080/admin/metrics?action=add_users"
+curl -X POST "http://localhost:8080/admin/metrics?action=clear_queue&queue=email"
+
+# Check all endpoints
+curl http://localhost:8080/status
 curl http://localhost:9090/health    # Comprehensive health check
 curl http://localhost:9090/ready     # Readiness probe
 curl http://localhost:9090/live      # Liveness probe
 curl http://localhost:9090/metrics   # Prometheus metrics
+
+# Filter custom metrics
+curl http://localhost:9090/metrics | grep -E "(user_registrations|orders_total|active_users)"
 ```
 
 ## Best Practices

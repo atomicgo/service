@@ -9,67 +9,73 @@ import (
 	"time"
 
 	"atomicgo.dev/service"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-)
-
-var (
-	// Custom counters
-	requestCounter = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "myapp_requests_total",
-			Help: "Total number of requests processed",
-		},
-		[]string{"method", "endpoint", "status"},
-	)
-
-	businessMetricCounter = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "myapp_business_events_total",
-			Help: "Total number of business events processed",
-		},
-		[]string{"event_type", "result"},
-	)
-
-	// Custom gauges
-	activeUsersGauge = promauto.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "myapp_active_users",
-			Help: "Number of currently active users",
-		},
-	)
-
-	queueSizeGauge = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "myapp_queue_size",
-			Help: "Current size of processing queues",
-		},
-		[]string{"queue_name"},
-	)
-
-	// Custom histograms
-	processingDuration = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "myapp_processing_duration_seconds",
-			Help:    "Time spent processing requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"operation"},
-	)
-
-	// Custom summary
-	requestSize = promauto.NewSummaryVec(
-		prometheus.SummaryOpts{
-			Name:       "myapp_request_size_bytes",
-			Help:       "Size of requests in bytes",
-			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
-		},
-		[]string{"endpoint"},
-	)
 )
 
 func main() {
 	svc := service.New("prometheus-counter-service", nil)
+
+	// Register custom metrics using the new flexible system
+	err := svc.RegisterCounter(service.MetricConfig{
+		Name:   "myapp_requests_total",
+		Help:   "Total number of requests processed",
+		Labels: []string{"method", "endpoint", "status"},
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register requests counter", "error", err)
+		os.Exit(1)
+	}
+
+	err = svc.RegisterCounter(service.MetricConfig{
+		Name:   "myapp_business_events_total",
+		Help:   "Total number of business events processed",
+		Labels: []string{"event_type", "result"},
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register business events counter", "error", err)
+		os.Exit(1)
+	}
+
+	err = svc.RegisterGauge(service.MetricConfig{
+		Name:   "myapp_active_users",
+		Help:   "Number of currently active users",
+		Labels: []string{}, // No labels for this gauge
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register active users gauge", "error", err)
+		os.Exit(1)
+	}
+
+	err = svc.RegisterGauge(service.MetricConfig{
+		Name:   "myapp_queue_size",
+		Help:   "Current size of processing queues",
+		Labels: []string{"queue_name"},
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register queue size gauge", "error", err)
+		os.Exit(1)
+	}
+
+	err = svc.RegisterHistogram(service.MetricConfig{
+		Name:   "myapp_processing_duration_seconds",
+		Help:   "Time spent processing requests",
+		Labels: []string{"operation"},
+		// Using default buckets
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register processing duration histogram", "error", err)
+		os.Exit(1)
+	}
+
+	err = svc.RegisterSummary(service.MetricConfig{
+		Name:       "myapp_request_size_bytes",
+		Help:       "Size of requests in bytes",
+		Labels:     []string{"endpoint"},
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+	})
+	if err != nil {
+		svc.Logger.Error("Failed to register request size summary", "error", err)
+		os.Exit(1)
+	}
 
 	// Simulate background metrics collection
 	go func() {
@@ -80,12 +86,12 @@ func main() {
 			select {
 			case <-ticker.C:
 				// Simulate changing active users
-				activeUsersGauge.Set(float64(rand.Intn(100) + 50))
+				svc.Metrics.SetGauge("myapp_active_users", float64(rand.Intn(100)+50))
 
 				// Simulate queue sizes
-				queueSizeGauge.WithLabelValues("email").Set(float64(rand.Intn(20)))
-				queueSizeGauge.WithLabelValues("notifications").Set(float64(rand.Intn(50)))
-				queueSizeGauge.WithLabelValues("analytics").Set(float64(rand.Intn(30)))
+				svc.Metrics.SetGauge("myapp_queue_size", float64(rand.Intn(20)), "email")
+				svc.Metrics.SetGauge("myapp_queue_size", float64(rand.Intn(50)), "notifications")
+				svc.Metrics.SetGauge("myapp_queue_size", float64(rand.Intn(30)), "analytics")
 
 				// Simulate some business events
 				eventTypes := []string{"user_signup", "purchase", "login", "logout"}
@@ -94,7 +100,7 @@ func main() {
 				for i := 0; i < rand.Intn(5); i++ {
 					eventType := eventTypes[rand.Intn(len(eventTypes))]
 					result := results[rand.Intn(len(results))]
-					businessMetricCounter.WithLabelValues(eventType, result).Inc()
+					svc.Metrics.IncCounter("myapp_business_events_total", eventType, result)
 				}
 			}
 		}
@@ -107,7 +113,7 @@ func main() {
 
 			// Track request size
 			if r.ContentLength > 0 {
-				requestSize.WithLabelValues(r.URL.Path).Observe(float64(r.ContentLength))
+				service.ObserveSummary(r, "myapp_request_size_bytes", float64(r.ContentLength), r.URL.Path)
 			}
 
 			// Wrap response writer to capture status code
@@ -118,8 +124,8 @@ func main() {
 
 			// Record metrics
 			duration := time.Since(start)
-			requestCounter.WithLabelValues(r.Method, r.URL.Path, strconv.Itoa(wrapper.statusCode)).Inc()
-			processingDuration.WithLabelValues("http_request").Observe(duration.Seconds())
+			service.IncCounter(r, "myapp_requests_total", r.Method, r.URL.Path, strconv.Itoa(wrapper.statusCode))
+			service.ObserveHistogram(r, "myapp_processing_duration_seconds", duration.Seconds(), "http_request")
 		})
 	})
 
@@ -156,11 +162,11 @@ func main() {
 
 			// Simulate success/failure
 			if rand.Float32() < 0.9 {
-				businessMetricCounter.WithLabelValues("user_creation", "success").Inc()
+				service.IncCounter(r, "myapp_business_events_total", "user_creation", "success")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"status": "created"}`))
 			} else {
-				businessMetricCounter.WithLabelValues("user_creation", "failure").Inc()
+				service.IncCounter(r, "myapp_business_events_total", "user_creation", "failure")
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(`{"error": "validation failed"}`))
 			}
@@ -188,11 +194,11 @@ func main() {
 
 			// Simulate success/failure
 			if rand.Float32() < 0.8 {
-				businessMetricCounter.WithLabelValues("order_creation", "success").Inc()
+				service.IncCounter(r, "myapp_business_events_total", "order_creation", "success")
 				w.WriteHeader(http.StatusCreated)
 				w.Write([]byte(`{"status": "created", "order_id": 123}`))
 			} else {
-				businessMetricCounter.WithLabelValues("order_creation", "failure").Inc()
+				service.IncCounter(r, "myapp_business_events_total", "order_creation", "failure")
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(`{"error": "insufficient funds"}`))
 			}
@@ -218,15 +224,15 @@ func main() {
 		duration := time.Since(start)
 
 		// Record processing duration
-		processingDuration.WithLabelValues("heavy_processing").Observe(duration.Seconds())
+		service.ObserveHistogram(r, "myapp_processing_duration_seconds", duration.Seconds(), "heavy_processing")
 
 		// Simulate success/failure
 		if rand.Float32() < 0.7 {
-			businessMetricCounter.WithLabelValues("heavy_processing", "success").Inc()
+			service.IncCounter(r, "myapp_business_events_total", "heavy_processing", "success")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf(`{"status": "completed", "duration": "%v"}`, duration)))
 		} else {
-			businessMetricCounter.WithLabelValues("heavy_processing", "failure").Inc()
+			service.IncCounter(r, "myapp_business_events_total", "heavy_processing", "failure")
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(`{"error": "processing failed"}`))
 		}
