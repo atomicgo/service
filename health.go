@@ -111,5 +111,6 @@ func GetHealthChecker(r *http.Request) *HealthChecker {
 	if !ok {
 		return nil
 	}
+
 	return hc
 }

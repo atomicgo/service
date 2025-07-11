@@ -224,9 +224,11 @@ func TestGetHealthChecker(t *testing.T) {
 			if retrievedHC == nil {
 				t.Error("expected health checker to be retrieved from context")
 			}
+
 			if retrievedHC != hc {
 				t.Error("expected retrieved health checker to match original")
 			}
+
 			w.WriteHeader(http.StatusOK)
 		}))
 
@@ -264,6 +266,7 @@ func TestHealthCheckerMiddleware(t *testing.T) {
 		if retrievedHC == nil {
 			t.Error("health checker should be available in context")
 		}
+
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -308,6 +311,7 @@ func TestService_RegisterHealthCheck(t *testing.T) {
 
 	t.Run("registers health check successfully", func(t *testing.T) {
 		checkCalled := false
+
 		svc.RegisterHealthCheck(health.Config{
 			Name: "test-check",
 			Check: func(ctx context.Context) error {

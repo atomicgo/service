@@ -44,6 +44,7 @@ func GetLogger(r *http.Request) *slog.Logger {
 		// Return a default logger if none is found
 		return slog.Default()
 	}
+
 	return logger
 }
 
@@ -97,5 +98,6 @@ func applyMiddleware(h http.Handler, middlewares ...Middleware) http.Handler {
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		h = middlewares[i](h)
 	}
+
 	return h
 }

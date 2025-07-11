@@ -108,6 +108,7 @@ func GetMetrics(r *http.Request) *MetricsCollector {
 	if !ok {
 		return nil
 	}
+
 	return metrics
 }
 
@@ -180,5 +181,6 @@ func (s *Service) startMetricsServer() error {
 	}
 
 	s.Logger.Info("starting metrics server", "addr", s.Config.MetricsAddr, "path", s.Config.MetricsPath)
+
 	return s.metricsServer.ListenAndServe()
 }

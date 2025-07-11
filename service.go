@@ -113,6 +113,7 @@ func (s *Service) Start() error {
 		}
 
 		s.Logger.Info("starting service", "name", s.Name, "addr", s.Config.Addr)
+
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.Logger.Error("server error", "error", err)
 			serverErrors <- err

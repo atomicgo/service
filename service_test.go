@@ -75,6 +75,7 @@ func TestLoadFromEnv(t *testing.T) {
 	os.Setenv("ADDR", ":8888")
 	os.Setenv("METRICS_ADDR", ":9999")
 	os.Setenv("METRICS_PATH", "/custom-metrics")
+
 	defer func() {
 		os.Unsetenv("ADDR")
 		os.Unsetenv("METRICS_ADDR")
@@ -133,6 +134,7 @@ func TestGetLogger(t *testing.T) {
 		if logger == nil {
 			t.Error("logger should not be nil")
 		}
+
 		w.WriteHeader(http.StatusOK)
 	}), LoggerMiddleware(svc.Logger))
 
@@ -155,6 +157,7 @@ func TestGetMetrics(t *testing.T) {
 		if metrics == nil {
 			t.Error("metrics should not be nil")
 		}
+
 		w.WriteHeader(http.StatusOK)
 	}), MetricsMiddleware(svc.Metrics))
 
@@ -207,7 +210,6 @@ func TestMetricsMiddleware(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Errorf("expected status 200, got %d", recorder.Code)
 	}
-
 	// Note: In a real test, you'd check if the metrics were actually recorded
 	// This would require exposing the metrics or using a metrics registry
 }
@@ -216,6 +218,7 @@ func TestShutdownHooks(t *testing.T) {
 	svc := New("test", nil)
 
 	hookCalled := false
+
 	svc.AddShutdownHook(func() error {
 		hookCalled = true
 		return nil
@@ -332,6 +335,7 @@ func BenchmarkHandleFunc(b *testing.B) {
 	req := httptest.NewRequest("GET", "/benchmark", nil)
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		recorder := httptest.NewRecorder()
 		svc.mux.ServeHTTP(recorder, req)
@@ -351,6 +355,7 @@ func BenchmarkMiddleware(b *testing.B) {
 	req := httptest.NewRequest("GET", "/benchmark", nil)
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		recorder := httptest.NewRecorder()
 		wrappedHandler.ServeHTTP(recorder, req)
