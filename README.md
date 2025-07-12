@@ -366,14 +366,14 @@ func main() {
     svc := service.New("my-service", nil)
 
     // PostgreSQL health check
-	svc.RegisterHealthCheck(health.Config{
-		Name:      "postgresql",
-		Timeout:   time.Second * 5,
-		SkipOnErr: false, // Critical check - service is unhealthy if DB is down
-		Check: healthPostgres.New(healthPostgres.Config{
-			DSN: dbURL,
-		}),
-	})
+    svc.RegisterHealthCheck(health.Config{
+        Name:      "postgresql",
+        Timeout:   time.Second * 5,
+        SkipOnErr: false, // Critical check - service is unhealthy if DB is down
+        Check: healthPostgres.New(healthPostgres.Config{
+            DSN: dbURL,
+        }),
+    })
 
     // Redis health check
     svc.RegisterHealthCheck(health.Config{
