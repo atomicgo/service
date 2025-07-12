@@ -87,14 +87,6 @@ func NewMetricsCollector(serviceName string) *MetricsCollector {
 	return metricsCollector
 }
 
-// ensureMetricNamePrefix ensures the metric name has the service name prefix
-func (mc *MetricsCollector) ensureMetricNamePrefix(name string) string {
-	if !strings.HasPrefix(name, mc.serviceName+"_") {
-		return mc.serviceName + "_" + name
-	}
-	return name
-}
-
 // RegisterCounter registers a new counter metric
 func (mc *MetricsCollector) RegisterCounter(config MetricConfig) error {
 	mc.mu.Lock()
@@ -370,6 +362,15 @@ func (mc *MetricsCollector) ObserveSummary(name string, value float64, labels ..
 // GetRegistry returns the Prometheus registry for custom integrations
 func (mc *MetricsCollector) GetRegistry() *prometheus.Registry {
 	return mc.registry
+}
+
+// ensureMetricNamePrefix ensures the metric name has the service name prefix
+func (mc *MetricsCollector) ensureMetricNamePrefix(name string) string {
+	if !strings.HasPrefix(name, mc.serviceName+"_") {
+		return mc.serviceName + "_" + name
+	}
+
+	return name
 }
 
 // responseWriter wraps http.ResponseWriter to capture status code
