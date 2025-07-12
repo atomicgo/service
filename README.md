@@ -184,11 +184,13 @@ The framework provides a flexible metrics system with built-in HTTP metrics and 
 
 ### Built-in HTTP Metrics
 
-The framework automatically collects these Prometheus metrics:
+The framework automatically collects these Prometheus metrics for every service:
 
-- `{service_name}_http_requests_total`: Total HTTP requests
-- `{service_name}_http_request_duration_seconds`: Request duration
-- `{service_name}_http_requests_in_flight`: In-flight requests
+- `{service_name}_http_requests_total`: Total HTTP requests by method, endpoint, and status
+- `{service_name}_http_request_duration_seconds`: Request duration histogram by method, endpoint, and status
+- `{service_name}_http_requests_in_flight`: Current number of in-flight requests
+
+These metrics are provided automatically without any configuration required.
 
 ### Custom Metrics
 
@@ -254,28 +256,6 @@ The framework supports all standard Prometheus metric types:
 - **Gauge**: Values that can go up and down (e.g., active connections, memory usage)
 - **Histogram**: Observations in configurable buckets (e.g., request duration, response size)
 - **Summary**: Observations with configurable quantiles (e.g., request latency percentiles)
-
-### Helper Functions
-
-Use these helper functions in your HTTP handlers to manipulate metrics:
-
-```go
-// Counter operations
-service.IncCounter(r, "metric_name", "label1", "label2")           // Increment by 1
-service.AddCounter(r, "metric_name", 5.0, "label1", "label2")     // Add specific value
-
-// Gauge operations
-service.SetGauge(r, "metric_name", 42.0, "label1")               // Set to specific value
-service.IncGauge(r, "metric_name", "label1")                     // Increment by 1
-service.DecGauge(r, "metric_name", "label1")                     // Decrement by 1
-service.AddGauge(r, "metric_name", 5.0, "label1")               // Add specific value
-
-// Histogram operations
-service.ObserveHistogram(r, "metric_name", 0.25, "label1")       // Observe a value
-
-// Summary operations
-service.ObserveSummary(r, "metric_name", 1024.0, "label1")       // Observe a value
-```
 
 ### Direct Access
 
@@ -449,53 +429,9 @@ See the `_examples/` directory for complete working examples demonstrating:
 
 - **minimal/**: Basic service setup with default configuration
 - **custom-metrics/**: Comprehensive custom metrics registration and usage
-- **prometheus-counter/**: Advanced metrics patterns and business logic tracking
+- **prometheus-counter/**: Simple custom counter example (HTTP metrics are automatic)
 - **health-check-***: Various health check integrations
 - **shutdown-hook/**: Graceful shutdown with custom cleanup
-
-### Running the Examples
-
-```bash
-# Basic minimal service
-cd _examples/minimal
-go run main.go
-
-# Custom metrics demonstration
-cd _examples/custom-metrics
-go run main.go
-
-# Advanced Prometheus metrics
-cd _examples/prometheus-counter
-go run main.go
-```
-
-### Testing Custom Metrics
-
-After running the custom metrics example:
-
-```bash
-# Generate user registrations
-curl "http://localhost:8080/register?source=web"
-curl "http://localhost:8080/register?source=mobile"
-
-# Generate orders
-curl "http://localhost:8080/order?category=electronics&payment=credit_card"
-curl "http://localhost:8080/order?category=books&payment=paypal"
-
-# Admin metric operations
-curl -X POST "http://localhost:8080/admin/metrics?action=add_users"
-curl -X POST "http://localhost:8080/admin/metrics?action=clear_queue&queue=email"
-
-# Check all endpoints
-curl http://localhost:8080/status
-curl http://localhost:9090/health    # Comprehensive health check
-curl http://localhost:9090/ready     # Readiness probe
-curl http://localhost:9090/live      # Liveness probe
-curl http://localhost:9090/metrics   # Prometheus metrics
-
-# Filter custom metrics
-curl http://localhost:9090/metrics | grep -E "(user_registrations|orders_total|active_users)"
-```
 
 ## Best Practices
 

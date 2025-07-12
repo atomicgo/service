@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -86,28 +87,39 @@ func NewMetricsCollector(serviceName string) *MetricsCollector {
 	return metricsCollector
 }
 
+// ensureMetricNamePrefix ensures the metric name has the service name prefix
+func (mc *MetricsCollector) ensureMetricNamePrefix(name string) string {
+	if !strings.HasPrefix(name, mc.serviceName+"_") {
+		return mc.serviceName + "_" + name
+	}
+	return name
+}
+
 // RegisterCounter registers a new counter metric
 func (mc *MetricsCollector) RegisterCounter(config MetricConfig) error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	if _, exists := mc.counters[config.Name]; exists {
-		return fmt.Errorf("counter %s already exists", config.Name) //nolint:err113
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(config.Name)
+
+	if _, exists := mc.counters[prefixedName]; exists {
+		return fmt.Errorf("counter %s already exists", prefixedName) //nolint:err113
 	}
 
 	counter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: config.Name,
+			Name: prefixedName,
 			Help: config.Help,
 		},
 		config.Labels,
 	)
 
 	if err := mc.registry.Register(counter); err != nil {
-		return fmt.Errorf("failed to register counter %s: %w", config.Name, err)
+		return fmt.Errorf("failed to register counter %s: %w", prefixedName, err)
 	}
 
-	mc.counters[config.Name] = counter
+	mc.counters[prefixedName] = counter
 
 	return nil
 }
@@ -117,23 +129,26 @@ func (mc *MetricsCollector) RegisterGauge(config MetricConfig) error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	if _, exists := mc.gauges[config.Name]; exists {
-		return fmt.Errorf("gauge %s already exists", config.Name) //nolint:err113
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(config.Name)
+
+	if _, exists := mc.gauges[prefixedName]; exists {
+		return fmt.Errorf("gauge %s already exists", prefixedName) //nolint:err113
 	}
 
 	gauge := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: config.Name,
+			Name: prefixedName,
 			Help: config.Help,
 		},
 		config.Labels,
 	)
 
 	if err := mc.registry.Register(gauge); err != nil {
-		return fmt.Errorf("failed to register gauge %s: %w", config.Name, err)
+		return fmt.Errorf("failed to register gauge %s: %w", prefixedName, err)
 	}
 
-	mc.gauges[config.Name] = gauge
+	mc.gauges[prefixedName] = gauge
 
 	return nil
 }
@@ -143,8 +158,11 @@ func (mc *MetricsCollector) RegisterHistogram(config MetricConfig) error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	if _, exists := mc.histograms[config.Name]; exists {
-		return fmt.Errorf("histogram %s already exists", config.Name) //nolint:err113
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(config.Name)
+
+	if _, exists := mc.histograms[prefixedName]; exists {
+		return fmt.Errorf("histogram %s already exists", prefixedName) //nolint:err113
 	}
 
 	buckets := config.Buckets
@@ -154,7 +172,7 @@ func (mc *MetricsCollector) RegisterHistogram(config MetricConfig) error {
 
 	histogram := prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name:    config.Name,
+			Name:    prefixedName,
 			Help:    config.Help,
 			Buckets: buckets,
 		},
@@ -162,10 +180,10 @@ func (mc *MetricsCollector) RegisterHistogram(config MetricConfig) error {
 	)
 
 	if err := mc.registry.Register(histogram); err != nil {
-		return fmt.Errorf("failed to register histogram %s: %w", config.Name, err)
+		return fmt.Errorf("failed to register histogram %s: %w", prefixedName, err)
 	}
 
-	mc.histograms[config.Name] = histogram
+	mc.histograms[prefixedName] = histogram
 
 	return nil
 }
@@ -175,8 +193,11 @@ func (mc *MetricsCollector) RegisterSummary(config MetricConfig) error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
-	if _, exists := mc.summaries[config.Name]; exists {
-		return fmt.Errorf("summary %s already exists", config.Name) //nolint:err113
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(config.Name)
+
+	if _, exists := mc.summaries[prefixedName]; exists {
+		return fmt.Errorf("summary %s already exists", prefixedName) //nolint:err113
 	}
 
 	objectives := config.Objectives
@@ -186,7 +207,7 @@ func (mc *MetricsCollector) RegisterSummary(config MetricConfig) error {
 
 	summary := prometheus.NewSummaryVec(
 		prometheus.SummaryOpts{
-			Name:       config.Name,
+			Name:       prefixedName,
 			Help:       config.Help,
 			Objectives: objectives,
 		},
@@ -194,10 +215,10 @@ func (mc *MetricsCollector) RegisterSummary(config MetricConfig) error {
 	)
 
 	if err := mc.registry.Register(summary); err != nil {
-		return fmt.Errorf("failed to register summary %s: %w", config.Name, err)
+		return fmt.Errorf("failed to register summary %s: %w", prefixedName, err)
 	}
 
-	mc.summaries[config.Name] = summary
+	mc.summaries[prefixedName] = summary
 
 	return nil
 }
@@ -207,9 +228,12 @@ func (mc *MetricsCollector) IncCounter(name string, labels ...string) error {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	counter, exists := mc.counters[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	counter, exists := mc.counters[prefixedName]
 	if !exists {
-		return fmt.Errorf("counter %s not found", name) //nolint:err113
+		return fmt.Errorf("counter %s not found", prefixedName) //nolint:err113
 	}
 
 	counter.WithLabelValues(labels...).Inc()
@@ -222,9 +246,12 @@ func (mc *MetricsCollector) AddCounter(name string, value float64, labels ...str
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	counter, exists := mc.counters[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	counter, exists := mc.counters[prefixedName]
 	if !exists {
-		return fmt.Errorf("counter %s not found", name) //nolint:err113
+		return fmt.Errorf("counter %s not found", prefixedName) //nolint:err113
 	}
 
 	counter.WithLabelValues(labels...).Add(value)
@@ -237,9 +264,12 @@ func (mc *MetricsCollector) SetGauge(name string, value float64, labels ...strin
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	gauge, exists := mc.gauges[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	gauge, exists := mc.gauges[prefixedName]
 	if !exists {
-		return fmt.Errorf("gauge %s not found", name) //nolint:err113
+		return fmt.Errorf("gauge %s not found", prefixedName) //nolint:err113
 	}
 
 	gauge.WithLabelValues(labels...).Set(value)
@@ -252,9 +282,12 @@ func (mc *MetricsCollector) IncGauge(name string, labels ...string) error {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	gauge, exists := mc.gauges[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	gauge, exists := mc.gauges[prefixedName]
 	if !exists {
-		return fmt.Errorf("gauge %s not found", name) //nolint:err113
+		return fmt.Errorf("gauge %s not found", prefixedName) //nolint:err113
 	}
 
 	gauge.WithLabelValues(labels...).Inc()
@@ -267,9 +300,12 @@ func (mc *MetricsCollector) DecGauge(name string, labels ...string) error {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	gauge, exists := mc.gauges[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	gauge, exists := mc.gauges[prefixedName]
 	if !exists {
-		return fmt.Errorf("gauge %s not found", name) //nolint:err113
+		return fmt.Errorf("gauge %s not found", prefixedName) //nolint:err113
 	}
 
 	gauge.WithLabelValues(labels...).Dec()
@@ -282,9 +318,12 @@ func (mc *MetricsCollector) AddGauge(name string, value float64, labels ...strin
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	gauge, exists := mc.gauges[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	gauge, exists := mc.gauges[prefixedName]
 	if !exists {
-		return fmt.Errorf("gauge %s not found", name) //nolint:err113
+		return fmt.Errorf("gauge %s not found", prefixedName) //nolint:err113
 	}
 
 	gauge.WithLabelValues(labels...).Add(value)
@@ -297,9 +336,12 @@ func (mc *MetricsCollector) ObserveHistogram(name string, value float64, labels 
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	histogram, exists := mc.histograms[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	histogram, exists := mc.histograms[prefixedName]
 	if !exists {
-		return fmt.Errorf("histogram %s not found", name) //nolint:err113
+		return fmt.Errorf("histogram %s not found", prefixedName) //nolint:err113
 	}
 
 	histogram.WithLabelValues(labels...).Observe(value)
@@ -312,9 +354,12 @@ func (mc *MetricsCollector) ObserveSummary(name string, value float64, labels ..
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
 
-	summary, exists := mc.summaries[name]
+	// Ensure metric name has service prefix
+	prefixedName := mc.ensureMetricNamePrefix(name)
+
+	summary, exists := mc.summaries[prefixedName]
 	if !exists {
-		return fmt.Errorf("summary %s not found", name) //nolint:err113
+		return fmt.Errorf("summary %s not found", prefixedName) //nolint:err113
 	}
 
 	summary.WithLabelValues(labels...).Observe(value)

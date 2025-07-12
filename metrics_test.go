@@ -77,7 +77,7 @@ func TestMetricsCollector_RegisterCounter(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := metrics.counters["test_counter"]; !exists {
+		if _, exists := metrics.counters["test-service_test_counter"]; !exists {
 			t.Error("expected counter to be registered")
 		}
 	})
@@ -123,7 +123,7 @@ func TestMetricsCollector_RegisterGauge(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if _, exists := metrics.gauges["test_gauge"]; !exists {
+	if _, exists := metrics.gauges["test-service_test_gauge"]; !exists {
 		t.Error("expected gauge to be registered")
 	}
 }
@@ -147,7 +147,7 @@ func TestMetricsCollector_RegisterHistogram(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := metrics.histograms["test_histogram"]; !exists {
+		if _, exists := metrics.histograms["test-service_test_histogram"]; !exists {
 			t.Error("expected histogram to be registered")
 		}
 	})
@@ -167,7 +167,7 @@ func TestMetricsCollector_RegisterHistogram(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := metrics.histograms["test_histogram_custom"]; !exists {
+		if _, exists := metrics.histograms["test-service_test_histogram_custom"]; !exists {
 			t.Error("expected histogram to be registered")
 		}
 	})
@@ -192,7 +192,7 @@ func TestMetricsCollector_RegisterSummary(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := metrics.summaries["test_summary"]; !exists {
+		if _, exists := metrics.summaries["test-service_test_summary"]; !exists {
 			t.Error("expected summary to be registered")
 		}
 	})
@@ -212,7 +212,7 @@ func TestMetricsCollector_RegisterSummary(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := metrics.summaries["test_summary_custom"]; !exists {
+		if _, exists := metrics.summaries["test-service_test_summary_custom"]; !exists {
 			t.Error("expected summary to be registered")
 		}
 	})
@@ -244,7 +244,7 @@ func TestMetricsCollector_CounterOperations(t *testing.T) {
 		}
 
 		// Verify the counter was incremented
-		counter := metrics.counters["test_counter_ops"]
+		counter := metrics.counters["test-service_test_counter_ops"]
 		metric := &dto.Metric{}
 
 		err = counter.WithLabelValues("inc").Write(metric)
@@ -266,7 +266,7 @@ func TestMetricsCollector_CounterOperations(t *testing.T) {
 		}
 
 		// Verify the counter was incremented by 5.5
-		counter := metrics.counters["test_counter_ops"]
+		counter := metrics.counters["test-service_test_counter_ops"]
 		metric := &dto.Metric{}
 
 		err = counter.WithLabelValues("add").Write(metric)
@@ -320,7 +320,7 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 		}
 
 		// Verify the gauge value
-		gauge := metrics.gauges["test_gauge_ops"]
+		gauge := metrics.gauges["test-service_test_gauge_ops"]
 		metric := &dto.Metric{}
 
 		err = gauge.WithLabelValues("set").Write(metric)
@@ -348,7 +348,7 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 		}
 
 		// Verify the gauge was incremented
-		gauge := metrics.gauges["test_gauge_ops"]
+		gauge := metrics.gauges["test-service_test_gauge_ops"]
 		metric := &dto.Metric{}
 
 		err = gauge.WithLabelValues("inc").Write(metric)
@@ -376,7 +376,7 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 		}
 
 		// Verify the gauge was decremented
-		gauge := metrics.gauges["test_gauge_ops"]
+		gauge := metrics.gauges["test-service_test_gauge_ops"]
 		metric := &dto.Metric{}
 
 		err = gauge.WithLabelValues("dec").Write(metric)
@@ -404,7 +404,7 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 		}
 
 		// Verify the gauge value
-		gauge := metrics.gauges["test_gauge_ops"]
+		gauge := metrics.gauges["test-service_test_gauge_ops"]
 		metric := &dto.Metric{}
 
 		err = gauge.WithLabelValues("add").Write(metric)
@@ -457,7 +457,7 @@ func TestMetricsCollector_HistogramOperations(t *testing.T) {
 		found := false
 
 		for _, mf := range metricFamilies {
-			if mf.GetName() == "test_histogram_ops" {
+			if mf.GetName() == "test-service_test_histogram_ops" {
 				found = true
 
 				for _, metric := range mf.GetMetric() {
@@ -513,7 +513,7 @@ func TestMetricsCollector_SummaryOperations(t *testing.T) {
 		found := false
 
 		for _, mf := range metricFamilies {
-			if mf.GetName() == "test_summary_ops" {
+			if mf.GetName() == "test-service_test_summary_ops" {
 				found = true
 
 				for _, metric := range mf.GetMetric() {
@@ -716,7 +716,7 @@ func TestService_RegisterMetrics(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := svc.Metrics.counters["service_test_counter"]; !exists {
+		if _, exists := svc.Metrics.counters["test-service_service_test_counter"]; !exists {
 			t.Error("expected counter to be registered")
 		}
 	})
@@ -733,7 +733,7 @@ func TestService_RegisterMetrics(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := svc.Metrics.gauges["service_test_gauge"]; !exists {
+		if _, exists := svc.Metrics.gauges["test-service_service_test_gauge"]; !exists {
 			t.Error("expected gauge to be registered")
 		}
 	})
@@ -750,7 +750,7 @@ func TestService_RegisterMetrics(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := svc.Metrics.histograms["service_test_histogram"]; !exists {
+		if _, exists := svc.Metrics.histograms["test-service_service_test_histogram"]; !exists {
 			t.Error("expected histogram to be registered")
 		}
 	})
@@ -767,7 +767,7 @@ func TestService_RegisterMetrics(t *testing.T) {
 			t.Fatalf("expected no error, got %v", err)
 		}
 
-		if _, exists := svc.Metrics.summaries["service_test_summary"]; !exists {
+		if _, exists := svc.Metrics.summaries["test-service_service_test_summary"]; !exists {
 			t.Error("expected summary to be registered")
 		}
 	})
