@@ -365,7 +365,7 @@ import (
 func main() {
     svc := service.New("my-service", nil)
 
-    // MySQL health check
+    // PostgreSQL health check
 	svc.RegisterHealthCheck(health.Config{
 		Name:      "postgresql",
 		Timeout:   time.Second * 5,
