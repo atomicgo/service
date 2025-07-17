@@ -61,10 +61,10 @@ func TestNewMetricsCollector(t *testing.T) {
 func TestMetricsCollector_RegisterCounter(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
 	t.Run("registers counter successfully", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:   "test_counter",
@@ -84,6 +84,8 @@ func TestMetricsCollector_RegisterCounter(t *testing.T) {
 
 	t.Run("fails to register duplicate counter", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:   "duplicate_counter",
@@ -131,10 +133,10 @@ func TestMetricsCollector_RegisterGauge(t *testing.T) {
 func TestMetricsCollector_RegisterHistogram(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
 	t.Run("registers histogram with default buckets", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:   "test_histogram",
@@ -154,6 +156,8 @@ func TestMetricsCollector_RegisterHistogram(t *testing.T) {
 
 	t.Run("registers histogram with custom buckets", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:    "test_histogram_custom",
@@ -176,10 +180,10 @@ func TestMetricsCollector_RegisterHistogram(t *testing.T) {
 func TestMetricsCollector_RegisterSummary(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
 	t.Run("registers summary with default objectives", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:   "test_summary",
@@ -199,6 +203,8 @@ func TestMetricsCollector_RegisterSummary(t *testing.T) {
 
 	t.Run("registers summary with custom objectives", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
 
 		config := MetricConfig{
 			Name:       "test_summary_custom",
@@ -221,24 +227,24 @@ func TestMetricsCollector_RegisterSummary(t *testing.T) {
 func TestMetricsCollector_CounterOperations(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
-	// Register a counter
-	config := MetricConfig{
-		Name:   "test_counter_ops",
-		Help:   "Test counter operations",
-		Labels: []string{"operation"},
-	}
-
-	err := metrics.RegisterCounter(config)
-	if err != nil {
-		t.Fatalf("failed to register counter: %v", err)
-	}
-
 	t.Run("increments counter", func(t *testing.T) {
 		t.Parallel()
 
-		err := metrics.IncCounter("test_counter_ops", "inc")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a counter
+		config := MetricConfig{
+			Name:   "test_counter_ops",
+			Help:   "Test counter operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterCounter(config)
+		if err != nil {
+			t.Fatalf("failed to register counter: %v", err)
+		}
+
+		err = metrics.IncCounter("test_counter_ops", "inc")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -260,7 +266,21 @@ func TestMetricsCollector_CounterOperations(t *testing.T) {
 	t.Run("adds value to counter", func(t *testing.T) {
 		t.Parallel()
 
-		err := metrics.AddCounter("test_counter_ops", 5.5, "add")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a counter
+		config := MetricConfig{
+			Name:   "test_counter_ops",
+			Help:   "Test counter operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterCounter(config)
+		if err != nil {
+			t.Fatalf("failed to register counter: %v", err)
+		}
+
+		err = metrics.AddCounter("test_counter_ops", 5.5, "add")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -282,6 +302,8 @@ func TestMetricsCollector_CounterOperations(t *testing.T) {
 	t.Run("fails with non-existent counter", func(t *testing.T) {
 		t.Parallel()
 
+		metrics := NewMetricsCollector("test-service")
+
 		err := metrics.IncCounter("non_existent_counter", "test")
 		if err == nil {
 			t.Error("expected error for non-existent counter")
@@ -297,24 +319,24 @@ func TestMetricsCollector_CounterOperations(t *testing.T) {
 func TestMetricsCollector_GaugeOperations(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
-	// Register a gauge
-	config := MetricConfig{
-		Name:   "test_gauge_ops",
-		Help:   "Test gauge operations",
-		Labels: []string{"operation"},
-	}
-
-	err := metrics.RegisterGauge(config)
-	if err != nil {
-		t.Fatalf("failed to register gauge: %v", err)
-	}
-
 	t.Run("sets gauge value", func(t *testing.T) {
 		t.Parallel()
 
-		err := metrics.SetGauge("test_gauge_ops", 42.5, "set")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a gauge
+		config := MetricConfig{
+			Name:   "test_gauge_ops",
+			Help:   "Test gauge operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterGauge(config)
+		if err != nil {
+			t.Fatalf("failed to register gauge: %v", err)
+		}
+
+		err = metrics.SetGauge("test_gauge_ops", 42.5, "set")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
@@ -334,10 +356,24 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 	})
 
 	t.Run("increments gauge", func(t *testing.T) {
-		// First set a value
 		t.Parallel()
 
-		err := metrics.SetGauge("test_gauge_ops", 10, "inc")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a gauge
+		config := MetricConfig{
+			Name:   "test_gauge_ops",
+			Help:   "Test gauge operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterGauge(config)
+		if err != nil {
+			t.Fatalf("failed to register gauge: %v", err)
+		}
+
+		// First set a value
+		err = metrics.SetGauge("test_gauge_ops", 10, "inc")
 		if err != nil {
 			t.Fatalf("failed to set initial gauge value: %v", err)
 		}
@@ -362,10 +398,24 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 	})
 
 	t.Run("decrements gauge", func(t *testing.T) {
-		// First set a value
 		t.Parallel()
 
-		err := metrics.SetGauge("test_gauge_ops", 10, "dec")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a gauge
+		config := MetricConfig{
+			Name:   "test_gauge_ops",
+			Help:   "Test gauge operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterGauge(config)
+		if err != nil {
+			t.Fatalf("failed to register gauge: %v", err)
+		}
+
+		// First set a value
+		err = metrics.SetGauge("test_gauge_ops", 10, "dec")
 		if err != nil {
 			t.Fatalf("failed to set initial gauge value: %v", err)
 		}
@@ -390,10 +440,24 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 	})
 
 	t.Run("adds value to gauge", func(t *testing.T) {
-		// First set a value
 		t.Parallel()
 
-		err := metrics.SetGauge("test_gauge_ops", 10, "add")
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a gauge
+		config := MetricConfig{
+			Name:   "test_gauge_ops",
+			Help:   "Test gauge operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterGauge(config)
+		if err != nil {
+			t.Fatalf("failed to register gauge: %v", err)
+		}
+
+		// First set a value
+		err = metrics.SetGauge("test_gauge_ops", 10, "add")
 		if err != nil {
 			t.Fatalf("failed to set initial gauge value: %v", err)
 		}
@@ -421,22 +485,22 @@ func TestMetricsCollector_GaugeOperations(t *testing.T) {
 func TestMetricsCollector_HistogramOperations(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
-	// Register a histogram
-	config := MetricConfig{
-		Name:   "test_histogram_ops",
-		Help:   "Test histogram operations",
-		Labels: []string{"operation"},
-	}
-
-	err := metrics.RegisterHistogram(config)
-	if err != nil {
-		t.Fatalf("failed to register histogram: %v", err)
-	}
-
 	t.Run("observes histogram values", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a histogram
+		config := MetricConfig{
+			Name:   "test_histogram_ops",
+			Help:   "Test histogram operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterHistogram(config)
+		if err != nil {
+			t.Fatalf("failed to register histogram: %v", err)
+		}
 
 		values := []float64{0.1, 0.5, 1.0, 2.0, 5.0}
 		for _, value := range values {
@@ -477,22 +541,22 @@ func TestMetricsCollector_HistogramOperations(t *testing.T) {
 func TestMetricsCollector_SummaryOperations(t *testing.T) {
 	t.Parallel()
 
-	metrics := NewMetricsCollector("test-service")
-
-	// Register a summary
-	config := MetricConfig{
-		Name:   "test_summary_ops",
-		Help:   "Test summary operations",
-		Labels: []string{"operation"},
-	}
-
-	err := metrics.RegisterSummary(config)
-	if err != nil {
-		t.Fatalf("failed to register summary: %v", err)
-	}
-
 	t.Run("observes summary values", func(t *testing.T) {
 		t.Parallel()
+
+		metrics := NewMetricsCollector("test-service")
+
+		// Register a summary
+		config := MetricConfig{
+			Name:   "test_summary_ops",
+			Help:   "Test summary operations",
+			Labels: []string{"operation"},
+		}
+
+		err := metrics.RegisterSummary(config)
+		if err != nil {
+			t.Fatalf("failed to register summary: %v", err)
+		}
 
 		values := []float64{0.1, 0.5, 1.0, 2.0, 5.0}
 		for _, value := range values {
@@ -702,10 +766,10 @@ func TestMetricsRegistry(t *testing.T) {
 func TestService_RegisterMetrics(t *testing.T) {
 	t.Parallel()
 
-	svc := New("test-service", nil)
-
 	t.Run("registers counter via service", func(t *testing.T) {
 		t.Parallel()
+
+		svc := New("test-service", nil)
 
 		err := svc.RegisterCounter(MetricConfig{
 			Name:   "service_test_counter",
@@ -724,6 +788,8 @@ func TestService_RegisterMetrics(t *testing.T) {
 	t.Run("registers gauge via service", func(t *testing.T) {
 		t.Parallel()
 
+		svc := New("test-service", nil)
+
 		err := svc.RegisterGauge(MetricConfig{
 			Name:   "service_test_gauge",
 			Help:   "Test gauge via service",
@@ -741,6 +807,8 @@ func TestService_RegisterMetrics(t *testing.T) {
 	t.Run("registers histogram via service", func(t *testing.T) {
 		t.Parallel()
 
+		svc := New("test-service", nil)
+
 		err := svc.RegisterHistogram(MetricConfig{
 			Name:   "service_test_histogram",
 			Help:   "Test histogram via service",
@@ -757,6 +825,8 @@ func TestService_RegisterMetrics(t *testing.T) {
 
 	t.Run("registers summary via service", func(t *testing.T) {
 		t.Parallel()
+
+		svc := New("test-service", nil)
 
 		err := svc.RegisterSummary(MetricConfig{
 			Name:   "service_test_summary",

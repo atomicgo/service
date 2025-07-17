@@ -59,13 +59,13 @@ func TestHealthChecker_Register(t *testing.T) {
 func TestHealthChecker_IsHealthy(t *testing.T) {
 	t.Parallel()
 
-	healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
-	if err != nil {
-		t.Fatalf("failed to create health checker: %v", err)
-	}
-
 	t.Run("returns true when all checks pass", func(t *testing.T) {
 		t.Parallel()
+
+		healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
+		if err != nil {
+			t.Fatalf("failed to create health checker: %v", err)
+		}
 
 		healthChecker.Register(health.Config{
 			Name: "passing-check",
@@ -81,6 +81,11 @@ func TestHealthChecker_IsHealthy(t *testing.T) {
 
 	t.Run("returns false when check fails", func(t *testing.T) {
 		t.Parallel()
+
+		healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
+		if err != nil {
+			t.Fatalf("failed to create health checker: %v", err)
+		}
 
 		healthChecker.Register(health.Config{
 			Name: "failing-check",
@@ -98,13 +103,13 @@ func TestHealthChecker_IsHealthy(t *testing.T) {
 func TestHealthChecker_IsReady(t *testing.T) {
 	t.Parallel()
 
-	healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
-	if err != nil {
-		t.Fatalf("failed to create health checker: %v", err)
-	}
-
 	t.Run("returns true when healthy", func(t *testing.T) {
 		t.Parallel()
+
+		healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
+		if err != nil {
+			t.Fatalf("failed to create health checker: %v", err)
+		}
 
 		healthChecker.Register(health.Config{
 			Name: "ready-check",
@@ -213,21 +218,21 @@ func TestHealthChecker_Handlers(t *testing.T) {
 func TestHealthChecker_HandlersWithFailures(t *testing.T) {
 	t.Parallel()
 
-	healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
-	if err != nil {
-		t.Fatalf("failed to create health checker: %v", err)
-	}
-
-	// Register a failing health check
-	healthChecker.Register(health.Config{
-		Name: "failing-check",
-		Check: func(ctx context.Context) error {
-			return errors.New("check failed") //nolint:err113
-		},
-	})
-
 	t.Run("ReadinessHandler returns 503 for not ready service", func(t *testing.T) {
 		t.Parallel()
+
+		healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
+		if err != nil {
+			t.Fatalf("failed to create health checker: %v", err)
+		}
+
+		// Register a failing health check
+		healthChecker.Register(health.Config{
+			Name: "failing-check",
+			Check: func(ctx context.Context) error {
+				return errors.New("check failed") //nolint:err113
+			},
+		})
 
 		req := httptest.NewRequest(http.MethodGet, "/ready", nil)
 		recorder := httptest.NewRecorder()
@@ -247,13 +252,13 @@ func TestHealthChecker_HandlersWithFailures(t *testing.T) {
 func TestGetHealthChecker(t *testing.T) {
 	t.Parallel()
 
-	healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
-	if err != nil {
-		t.Fatalf("failed to create health checker: %v", err)
-	}
-
 	t.Run("returns health checker from context", func(t *testing.T) {
 		t.Parallel()
+
+		healthChecker, err := NewHealthChecker("test-service", "v1.0.0")
+		if err != nil {
+			t.Fatalf("failed to create health checker: %v", err)
+		}
 
 		handler := HealthCheckerMiddleware(healthChecker)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			retrievedHC := GetHealthChecker(r)
@@ -351,10 +356,10 @@ func TestHealthChecker_Timeout(t *testing.T) {
 func TestService_RegisterHealthCheck(t *testing.T) {
 	t.Parallel()
 
-	svc := New("test-service", nil)
-
 	t.Run("registers health check successfully", func(t *testing.T) {
 		t.Parallel()
+
+		svc := New("test-service", nil)
 
 		checkCalled := false
 
@@ -382,6 +387,8 @@ func TestService_RegisterHealthCheck(t *testing.T) {
 
 	t.Run("handles nil health checker gracefully", func(t *testing.T) {
 		t.Parallel()
+
+		svc := New("test-service", nil)
 
 		svcWithoutHealth := &Service{
 			Name:          "test",
