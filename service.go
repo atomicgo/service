@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/signal"
 	"syscall"
@@ -79,6 +80,11 @@ func (s *Service) Handle(pattern string, handler http.Handler) {
 	// Apply middleware to the handler
 	wrappedHandler := applyMiddleware(handler, s.middlewares...)
 	s.mux.Handle(pattern, wrappedHandler)
+}
+
+// TestServer returns a httptest.Server with the service's mux
+func (s *Service) TestServer() *httptest.Server {
+	return httptest.NewServer(s.mux)
 }
 
 // Use adds middleware to the service
